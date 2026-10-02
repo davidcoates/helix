@@ -178,10 +178,10 @@ fn update_completion_filter(cx: &mut commands::Context, c: Option<char>) {
             if completion.is_empty() || c.is_some_and(|c| !char_is_word(c)) {
                 editor_view.clear_completion(cx.editor);
                 // clearing completions might mean we want to immediately rerequest them (usually
-                // this occurs if typing a trigger char)
-                if c.is_some() {
-                    trigger_auto_completion(cx.editor, false);
-                }
+                // this occurs if typing a trigger char). After a deletion, rerequest only if the
+                // cursor is now right after a trigger char: deleting `foo.b` back to `foo.`
+                // reopens the menu, deleting `fo` back to nothing leaves it closed.
+                trigger_auto_completion(cx.editor, c.is_none());
             } else {
                 let handle = cx.editor.handlers.completions.request_controller.restart();
                 request_incomplete_completion_list(cx.editor, handle)
