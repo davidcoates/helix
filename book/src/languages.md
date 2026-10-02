@@ -194,6 +194,7 @@ These are the available options for a language server.
 | `timeout`                  | The maximum time a request to the language server may take, in seconds. Defaults to `20`                                          |
 | `environment`              | Any environment variables that will be used when starting the language server `{ "KEY1" = "Value1", "KEY2" = "Value2" }`          |
 | `required-root-patterns`   | A list of `glob` patterns to look for in the working directory of the lsp. The language server is only started if at least one of them is found. |
+| `auto-expand-snippets`     | Expand a snippet from this server once its label has been typed in full, followed by a character that continues no other snippet label from this server. Defaults to `false` |
 
 A `format` sub-table within `config` can be used to pass extra formatting options to
 [Document Formatting Requests](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_formatting).

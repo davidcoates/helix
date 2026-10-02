@@ -448,6 +448,8 @@ pub struct LanguageServerConfiguration {
     pub timeout: u64,
     #[serde(default)]
     pub required_root_patterns: Option<GlobSet>,
+    #[serde(default)]
+    pub auto_expand_snippets: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1509,7 +1509,21 @@ impl Component for EditorView {
                                         scroll: None,
                                     };
 
-                                    if let EventResult::Consumed(callback) =
+                                    let next = match key {
+                                        key!(Enter) => Some('\n'),
+                                        _ => key.char(),
+                                    };
+                                    if next.is_some_and(|next| {
+                                        completion.select_typed_snippet(cx.editor, next)
+                                    }) {
+                                        // `consumed` stays false so the key is inserted after the snippet
+                                        match completion
+                                            .handle_event(&Event::Key(key!(Enter)), &mut cx)
+                                        {
+                                            EventResult::Consumed(callback) => Some(callback),
+                                            EventResult::Ignored(_) => None,
+                                        }
+                                    } else if let EventResult::Consumed(callback) =
                                         completion.handle_event(event, &mut cx)
                                     {
                                         consumed = true;

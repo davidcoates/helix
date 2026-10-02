@@ -129,6 +129,20 @@ impl<T: Item> Menu<T> {
         self.adjust_scroll();
     }
 
+    /// Moves the cursor to the option `pick` returns. Returns whether that option is a match.
+    pub fn select(&mut self, pick: impl FnOnce(&[T]) -> Option<usize>) -> bool {
+        let Some(pos) = pick(&self.options).and_then(|option| {
+            self.matches
+                .iter()
+                .position(|&(index, _score)| index as usize == option)
+        }) else {
+            return false;
+        };
+        self.cursor = Some(pos);
+        self.adjust_scroll();
+        true
+    }
+
     pub fn auto_close(mut self, auto_close: bool) -> Self {
         self.auto_close = auto_close;
         self

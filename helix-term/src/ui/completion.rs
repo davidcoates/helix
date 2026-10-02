@@ -9,6 +9,7 @@ use crate::{
 use helix_core::snippets::{ActiveSnippet, RenderedSnippet, Snippet};
 use helix_core::{self as core, chars, fuzzy::MATCHER, Change, Transaction};
 use helix_lsp::{lsp, util, OffsetEncoding};
+use helix_stdx::rope::RopeSliceExt;
 use helix_view::{
     editor::CompleteAction,
     handlers::lsp::SignatureHelpInvoked,
@@ -422,6 +423,47 @@ impl Completion {
         }
         self.score(c.is_some());
         self.popup.contents_mut().reset_cursor();
+    }
+
+    /// Selects the snippet, from a server with `auto-expand-snippets`, whose label is the text
+    /// before the cursor, unless that label followed by `next` begins another of that server's
+    /// snippet labels. Returns whether one was selected.
+    pub fn select_typed_snippet(&mut self, editor: &Editor, next: char) -> bool {
+        let (view, doc) = current_ref!(editor);
+        let text = doc.text().slice(..);
+        let typed = text.slice(..doc.selection(view.id).primary().cursor(text));
+        let loader = editor.syn_loader.load();
+        let auto_expands = |provider| {
+            editor
+                .language_servers
+                .get_by_id(provider)
+                .and_then(|ls| loader.language_server_configs().get(ls.name()))
+                .is_some_and(|config| config.auto_expand_snippets)
+        };
+        self.popup.contents_mut().select(|options| {
+            let snippets = || {
+                options
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, option)| match option {
+                        CompletionItem::Lsp(LspCompletionItem { item, provider, .. })
+                            if item.kind == Some(lsp::CompletionItemKind::SNIPPET) =>
+                        {
+                            Some((index, *provider, item.label.as_str()))
+                        }
+                        _ => None,
+                    })
+            };
+            let (index, provider, label) = snippets()
+                .find(|&(_, provider, label)| typed.ends_with(label) && auto_expands(provider))?;
+            let continues = snippets().any(|(_, other_provider, other)| {
+                other_provider == provider
+                    && other
+                        .strip_prefix(label)
+                        .is_some_and(|rest| rest.starts_with(next))
+            });
+            (!continues).then_some(index)
+        })
     }
 
     pub fn replace_provider_completions(
