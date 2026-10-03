@@ -323,6 +323,13 @@ impl Completion {
 
     fn score(&mut self, incremental: bool) {
         let pattern = &self.filter;
+        // `pattern` is the word before the cursor, so this is the case-sensitive whole-word match.
+        let is_exact = |text: &str| {
+            !pattern.is_empty()
+                && text
+                    .strip_suffix(pattern.as_str())
+                    .is_some_and(|rest| !rest.ends_with(chars::char_is_word))
+        };
         let mut matcher = MATCHER.lock();
         matcher.config = Config::DEFAULT;
         // slight preference towards prefix matches
@@ -372,6 +379,7 @@ impl Completion {
             let option = &options[i as usize];
             (
                 score <= min_score,
+                !is_exact(option.filter_text()),
                 Reverse(option.preselect()),
                 option.provider_priority(),
                 Reverse(score),
